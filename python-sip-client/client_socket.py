@@ -16,9 +16,15 @@ class ClientSocket:
     def __init__(self, address, port):
         self.address = address
         self.port = port
-            
+
+    def set_address(self, address):
+        self.address = address
+
+    def set_port(self, port):
+        self.port = port
+        
     def connect(self):
-        result = "Connected to {}:{}".format(self.address, self.port)
+        result = "Not connected"
         if self.address == "" or self.port == "" or self.port == 0 or self.address == 0:
             return "Can not connect due to invalid input arguments"
         self.my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -32,7 +38,9 @@ class ClientSocket:
             result = (sockname, peername)
         except Exception as data:
             print("Failed to connect to {}:{} because {}".format(self.address, self.port, data))
-            return
+            self.close()
+            self.my_socket = None
+            return result
         print("Connected to {}:{}".format(result[0][0], result[0][1]))
         return result
 
@@ -57,7 +65,7 @@ class ClientSocket:
                     total_sent_bytes = total_sent_bytes + sent_bytes;
             except Exception as exception_msg:
                 print("Couldn't sent bytes because of {}".format(exception_msg))
-                return
+                return "Can not send - due to exception"
         else:
             return "Can not send - socket is closed"
         return "Sent {} bytes of data".format(total_sent_bytes)
@@ -75,11 +83,12 @@ class ClientSocket:
                 err = e.args[0]
                 if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
                     print(err)
-                    return
+                    return "Receive returned with EAGAIN or EWOULDBLOCK"
                 else:
-                    return "Couldn't receive data because {}".format(e)
+                    print("Couldn't receive data because {}".format(e))
+                    return "Couldn't receive data because of error"
         else:
-            return "The socket is not connected to {}:{}".format(self.address, self.port)
+            return "The socket is not connected."
 
         return "Received {} bytes of data".format(len(data_buffer))
 
@@ -89,7 +98,7 @@ class ClientSocket:
         print("Started select thread...")
         while self.running is True and self.my_socket is not None:
             ready_readers, ready_writers, ready_errors =\
-            select.select([self.my_socket], [self.my_socket], [self.my_socket], self.select_timeout)
+            select.select([self.my_socket], [], [self.my_socket], self.select_timeout)
             if ready_readers != []:
                 msg = ''
                 res = self.receive(msg)
@@ -98,9 +107,9 @@ class ClientSocket:
                 print("Error on the socket: {}".format(errno))
                 self.my_socket.close()
                 self.running = False
-            if ready_writers != []:
+            #if ready_writers != []:
                 #self.send("\r\n")
-                time.sleep(1)
+                #time.sleep(1)
                 
     def stop(self):
         print("Stopping the socket...")
