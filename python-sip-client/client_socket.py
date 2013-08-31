@@ -9,7 +9,7 @@ class ClientSocket:
     port = ""
     my_socket = None
     BUFF_SIZE = 4096
-    select_timeout = 5
+    select_timeout = 2
     running = False
     thread = None
     
@@ -30,18 +30,17 @@ class ClientSocket:
         self.my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             self.my_socket.connect((self.address, self.port))
-            self.thread = threading.Thread(target=self.select_thread)
-            self.thread.start()
-            #self.thread.join()
-            sockname = self.my_socket.getsockname()
-            peername = self.my_socket.getpeername()
-            result = (sockname, peername)
         except Exception as data:
             print("Failed to connect to {}:{} because {}".format(self.address, self.port, data))
             self.close()
             self.my_socket = None
             return result
-        print("Connected to {}:{}".format(result[0][0], result[0][1]))
+        self.thread = threading.Thread(target=self.select_thread)
+        self.thread.start()
+        sockname = self.my_socket.getsockname()
+        peername = self.my_socket.getpeername()
+        result = (sockname, peername)
+        print("Connected to {}:{}".format(result[1][0], result[1][1]))
         return result
 
     def close(self):
@@ -86,6 +85,9 @@ class ClientSocket:
                     return "Receive returned with EAGAIN or EWOULDBLOCK"
                 else:
                     print("Couldn't receive data because {}".format(e))
+                    self.running = False
+                    self.my_socket.close()
+                    self.my_socket = None
                     return "Couldn't receive data because of error"
         else:
             return "The socket is not connected."
@@ -102,7 +104,6 @@ class ClientSocket:
             if ready_readers != []:
                 msg = ''
                 res = self.receive(msg)
-                print(res);
             if ready_errors != []:
                 print("Error on the socket: {}".format(errno))
                 self.my_socket.close()

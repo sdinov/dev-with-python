@@ -8,9 +8,10 @@ def main(proxy, display_name, extension):
             if cs is None:
                 cs = ClientSocket(proxy, 5060)
                 network = cs.connect()
-                rr = RegisterRequest(proxy, network[0][0], network[0][1], display_name, extension, 1)
-                req = rr.create()
-                cs.send(rr.create())
+                if network != "Not connected":
+                    rr = RegisterRequest(proxy, network[0][0], network[0][1], display_name, extension, 1)
+                    req = rr.create()
+                    cs.send(rr.create())
             else:
                 time.sleep(1)
         
